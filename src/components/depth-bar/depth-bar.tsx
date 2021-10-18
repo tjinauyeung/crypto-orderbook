@@ -1,21 +1,27 @@
 import React from "react";
-import "twin.macro";
 import { OrderType } from "../../types";
+import "twin.macro";
 
 const COLORS = {
   RED: `rgba(255, 0, 0, 0.2)`,
   GREEN: `rgba(0, 255, 0, 0.2)`,
 };
 
-type Props = {
+type DepthBarProps = {
   depth: number;
   orderType: OrderType;
+  direction: "ltr" | "rtl";
 };
 
-export const DepthBar = ({ depth, orderType, ...props }: Props) => (
+export const DepthBar = ({
+  depth,
+  orderType,
+  direction,
+  ...props
+}: DepthBarProps) => (
   <div
     style={{
-      backgroundImage: `linear-gradient(to ${getDir(orderType)}, ${getColor(
+      backgroundImage: `linear-gradient(to ${getDir(direction)}, ${getColor(
         orderType
       )} 0 ${depth}%, transparent ${depth}% 100%)`,
     }}
@@ -23,6 +29,6 @@ export const DepthBar = ({ depth, orderType, ...props }: Props) => (
   />
 );
 
-const getDir = (orderType: string) => (orderType === "buy" ? "left" : "right");
+const getDir = (direction: string) => (direction === "ltr" ? "left" : "right");
 const getColor = (orderType: string) =>
   orderType === "buy" ? COLORS.GREEN : COLORS.RED;

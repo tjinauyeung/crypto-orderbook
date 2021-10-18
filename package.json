@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@emotion/react": "11.5.0",
+    "@emotion/styled": "11.3.0",
     "@react-hook/resize-observer": "1.2.4",
     "@types/react": "17.0.30",
     "@types/react-dom": "17.0.9",

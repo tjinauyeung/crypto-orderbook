@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { Order, OrderType } from "../../types";
 import { OrderListItem } from "../order-list-item/order-list-item";
 import { FixedSizeList as List } from "react-window";
@@ -9,6 +9,8 @@ type OrderListProps = {
   maxTotal: number;
   orders: Order[];
   orderType: OrderType;
+  direction: 'ltr' | 'rtl';
+  reverse?: boolean;
 };
 
 export const OrderList = ({
@@ -16,10 +18,10 @@ export const OrderList = ({
   maxTotal,
   orders,
   orderType,
+  direction,
+  reverse,
   ...props
 }: OrderListProps) => {
-
-  console.log('rerendering order-list');
 
   const Row = useCallback(
     ({ index, style }) => {
@@ -33,16 +35,17 @@ export const OrderList = ({
           style={style}
           total={total}
           orderType={orderType}
+          direction={direction}
         />
       );
     },
-    [orders]
+    [orders, direction]
   );
 
   return (
     <section
       tw="grid grid-cols-3 flex-row-reverse text-right font-mono auto-rows-max"
-      style={{ direction: orderType === OrderType.BUY ? "ltr" : "rtl" }}
+      style={{ direction }}
       {...props}
     >
       <header
@@ -59,7 +62,7 @@ export const OrderList = ({
         itemCount={orders.length}
         itemSize={35}
         tw="col-span-3"
-        style={{ direction: orderType === OrderType.BUY ? "ltr" : "rtl" }}
+        style={{ direction }}
         {...props}
       >
         {Row}

@@ -11,17 +11,19 @@ type OrderListItemProps = {
   total: number;
   orderType: OrderType;
   depth: number;
+  direction: 'rtl' | 'ltr'
 };
 
 export const OrderListItem = memo<OrderListItemProps>(
-  ({ price, size, style, total, orderType, depth }: OrderListItemProps) => {
-    console.log('rerendering');
+  ({ price, size, style, total, orderType, direction, depth }: OrderListItemProps) => {
+    console.log('rerendering', direction);
     return (
       <div tw="col-span-3 relative h-6" style={style}>
         <DepthBar
           tw="absolute h-6 w-full top-0"
           depth={depth}
           orderType={orderType}
+          direction={direction}
         />
         <div tw="grid grid-cols-3 relative">
           <div tw="px-2 py-1">{formatNumber(total)}</div>

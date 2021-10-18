@@ -8,7 +8,7 @@ import { Button } from "../button/button";
 import { Footer } from "../footer/footer";
 import { OrderList } from "../order-list/order-list";
 import { Spread } from "../spread/spread";
-import {useDebouncedResizeObserver} from '../../hooks/useDebouncedResizeObserver';
+import { useDebouncedResizeObserver } from "../../hooks/useDebouncedResizeObserver";
 
 const HEADER_HEIGHT = 70;
 const FOOTER_HEIGHT = 80;
@@ -67,13 +67,14 @@ export const OrderBook = () => {
           orders={data.bids}
           maxTotal={data.maxTotals.bid}
           orderType={OrderType.BUY}
+          direction={width > BREAKPOINT_SM ? "ltr" : "rtl"}
         />
         <Spread
           tw="flex items-center justify-center font-mono flex md:hidden p-2"
           style={{
             borderTop: "1px solid #777",
             borderBottom: "1px solid #777",
-            height: SPREAD_HEIGHT
+            height: SPREAD_HEIGHT,
           }}
           spread={data.spread}
         />
@@ -87,6 +88,7 @@ export const OrderBook = () => {
           orders={data.asks}
           maxTotal={data.maxTotals.ask}
           orderType={OrderType.SELL}
+          direction="rtl"
         />
       </main>
 

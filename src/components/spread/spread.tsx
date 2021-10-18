@@ -3,12 +3,12 @@ import "twin.macro";
 import { formatNumber } from "../../lib/formatters";
 import { Spread as ISpread } from "../../types";
 
-type Props = {
+type SpreadProps = {
   spread: ISpread;
   style?: unknown;
 };
 
-export const Spread = ({ spread, ...props }: Props) => (
+export const Spread = ({ spread, ...props }: SpreadProps) => (
   <div tw="flex items-center justify-center font-mono flex p-2" {...props}>
     <span tw="mr-2">Spread</span>
     <span tw="mr-2">{formatNumber(spread.amount)}</span>
