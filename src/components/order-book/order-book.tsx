@@ -41,8 +41,8 @@ export const OrderBook = () => {
           </h1>
           <div tw="flex-1 flex items-center justify-center flex-1 font-mono text-sm hidden md:flex">
             <span tw="mr-2">Spread</span>
-            <span tw="mr-2">{formatNumber(spread)}</span>
-            <span>({formatNumber((spread / bids[0]?.[0]) * 100)}%)</span>
+            <span tw="mr-2">{formatNumber(spread.amount)}</span>
+            <span>({formatNumber(spread.percentage)}%)</span>
           </div>
           <div tw="flex-1 text-right">
             {feed}
@@ -67,8 +67,8 @@ export const OrderBook = () => {
           }}
         >
           <span tw="mr-2">Spread</span>
-          <span tw="mr-2">{formatNumber(spread)}</span>
-          <span>({formatNumber((spread / bids[0]?.[0]) * 100)}%)</span>
+          <span tw="mr-2">{formatNumber(spread.amount)}</span>
+          <span>({formatNumber(spread.percentage)}%</span>
         </div>
         <OrderList
           tw="flex-1"

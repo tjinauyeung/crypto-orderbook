@@ -1,13 +1,20 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { usePrevious } from "../hooks/usePrevious";
-import { MaxTotals, OrderMessages, Orders, SocketState } from "../types";
+import { MaxTotals, Order, OrderData, SocketState, Spread } from "../types";
 import { throttle } from "../utils/throttle";
+import * as mapper from "../services/order-mapper";
 
 type Feed = {
-  asks: Orders;
-  bids: Orders;
-  spread: number;
+  asks: Order[];
+  bids: Order[];
+  spread: Spread;
   maxTotals: {
     ask: number;
     bid: number;
@@ -30,7 +37,15 @@ export const useFeed = () => useContext(FeedContext);
 const INITIAL_ORDER_STATE = {
   asks: [],
   bids: [],
-  spread: 0,
+  spread: {
+    amount: 0,
+    percentage: 0,
+  },
+};
+
+const FEED = {
+  BTCUSD: "PI_XBTUSD",
+  ETHUSD: "PI_ETHUSD",
 };
 
 const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
@@ -41,36 +56,28 @@ export const FeedProvider = ({ children }) => {
     onMessage: handleMessage,
   });
 
-  const [feed, setFeed] = useState("PI_XBTUSD");
+  const [feed, setFeed] = useState(FEED.BTCUSD);
   const prevFeed = usePrevious(feed);
 
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   const [maxTotals, setMaxTotals] = useState<MaxTotals>({ ask: 0, bid: 0 });
-  const [orders, setOrders] = useState<{ asks: Orders; bids: Orders; spread: number }>(INITIAL_ORDER_STATE);
+  const [orders, setOrders] = useState<OrderData>(INITIAL_ORDER_STATE);
 
   function handleMessage(message) {
     if (message.event === "subscribed") {
-      setIsSubscribed(true);
-      return;
+      return setIsSubscribed(true);
     }
     if (message.event === "unsubscribe") {
       setOrders(INITIAL_ORDER_STATE);
-      setIsSubscribed(false);
-      return;
+      return setIsSubscribed(false);
     }
     if (message.feed === "book_ui_1_snapshot") {
-      setOrders({
-        asks: mapOrders(message.asks, true),
-        bids: mapOrders(message.bids, false),
-        spread: message.bids[0][0] - message.asks[0][0],
-      });
-      return;
+      return setOrders(mapper.mapOrderSnapshot(message));
     }
     if (message.feed === "book_ui_1") {
-      updateOrders(message);
-      return;
+      return throttle(setOrders(o => mapper.mapOrderUpdates(o, message)), 500);
     }
   }
 
@@ -95,7 +102,7 @@ export const FeedProvider = ({ children }) => {
   }, [feed, prevFeed]);
 
   const toggleFeed = () => {
-    setFeed((feed) => (feed === "PI_XBTUSD" ? "PI_ETHUSD" : "PI_XBTUSD"));
+    setFeed((feed) => (feed === FEED.BTCUSD ? FEED.ETHUSD : FEED.BTCUSD));
   };
 
   const subscribe = useCallback(
@@ -120,55 +127,14 @@ export const FeedProvider = ({ children }) => {
     [sendMessage]
   );
 
-  const updateOrders = throttle((msg: any) => {
-    setOrders((o) => {
-      return {
-        asks: msg.asks.length > 0 ? mapUpdates(o.asks, msg.asks, true) : o.asks,
-        bids: msg.bids.length > 0 ? mapUpdates(o.bids, msg.bids, false) : o.bids,
-        spread: o.asks[0][0] - o.bids[0][0],
-      };
-    });
-  }, 500);
-
-  const mapOrders = (orders: OrderMessages, isAsk: boolean): Orders => {
-    let total = 0;
-    const res = [];
-
-    for (const [price, size] of orders) {
-      res.push([price, size, (total += size)]);
+  useEffect(() => {
+    if (orders.bids[orders.bids.length] && orders.asks[orders.asks.length]) {
+      setMaxTotals({
+        bid: orders.bids[orders.bids.length][2],
+        ask: orders.asks[orders.asks.length][2],
+      });
     }
-
-    setMaxTotals((t) => ({
-      ...t,
-      [isAsk ? "ask" : "bid"]: total,
-    }));
-
-    return res;
-  };
-
-  const mapUpdates = useCallback((current, updates: Orders, isAsk) => {
-    let copy = [...current];
-    for (const [price, size] of updates) {
-      const idx = copy.findIndex((el) => el[0] == price);
-      if (idx !== -1) {
-        if (size === 0) {
-          // remove from copy
-          copy = [...copy.slice(0, idx), ...copy.slice(idx + 1)];
-        } else {
-          copy[idx] = [price, size];
-        }
-      } else {
-        if (size > 0) {
-          copy.push([price, size]);
-        }
-      }
-    }
-
-    return mapOrders(
-      copy.sort((a, b) => (isAsk ? (a[0] > b[0] ? 1 : -1) : a[0] < b[0] ? 1 : -1)),
-      isAsk
-    );
-  }, []);
+  }, [orders]);
 
   return (
     <FeedContext.Provider

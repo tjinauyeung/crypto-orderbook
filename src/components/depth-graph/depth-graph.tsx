@@ -2,7 +2,7 @@ import React from "react";
 import "twin.macro";
 
 export const DepthGraph = ({ total, maxTotal, orderType, ...props }) => {
-  const depth = Math.floor((total / maxTotal) * 100);
+  const depth = Math.ceil((total / maxTotal) * 100);
   return (
     <div
       style={{
