@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 
-const getVisibility = () => {
+const getWindowIsActive = () => {
   if (typeof document === "undefined") return true;
-  return document.visibilityState;
+  return document.visibilityState === 'visible';
 };
 
-export const useWindowIsActive = () => {
-  let [isActive, setIsActive] = useState(getVisibility());
+export const useWindowIsActive = (): boolean => {
+  let [isActive, setIsActive] = useState(getWindowIsActive());
 
   function handleVisibility() {
-    setIsActive(getVisibility());
+    setIsActive(getWindowIsActive());
   }
 
   useEffect(() => {

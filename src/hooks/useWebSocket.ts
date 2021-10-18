@@ -29,7 +29,7 @@ export const useWebSocket = ({ url, onMessage }: UseWebSocketProps): UseWebSocke
     try {
       json = JSON.parse(e.data);
     } catch (e) {
-      console.log('failed to parse message');
+      console.log(`Failed to parse message. Reason ${e.message}. Message: ${e}.`);
     }
     onMessage(json);
   }

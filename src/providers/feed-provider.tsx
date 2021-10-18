@@ -1,20 +1,25 @@
-import React, { createContext, Dispatch, SetStateAction, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { usePrevious } from "../hooks/usePrevious";
 import { MaxTotals, OrderMessages, Orders, SocketState } from "../types";
+import { throttle } from "../utils/throttle";
 
 type Feed = {
   asks: Orders;
   bids: Orders;
-  status: SocketState;
   spread: number;
   maxTotals: {
     ask: number;
     bid: number;
   };
-  paused: boolean;
-  setPaused: Dispatch<SetStateAction<boolean>>;
-  toggleFeed: () => void;
+
+  isPaused: boolean;
+  pause: () => void;
+  start: () => void;
+
   feed: string;
+  toggleFeed: () => void;
+
   isLoading: boolean;
 };
 
@@ -26,17 +31,22 @@ const INITIAL_ORDER_STATE = {
   asks: [],
   bids: [],
   spread: 0,
-}
+};
+
+const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
 
 export const FeedProvider = ({ children }) => {
   const { status, sendMessage } = useWebSocket({
-    url: "wss://www.cryptofacilities.com/ws/v1",
+    url: SOCKET_URL,
     onMessage: handleMessage,
   });
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [paused, setPaused] = useState<boolean>(false);
+
   const [feed, setFeed] = useState("PI_XBTUSD");
   const prevFeed = usePrevious(feed);
+
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+
   const [maxTotals, setMaxTotals] = useState<MaxTotals>({ ask: 0, bid: 0 });
   const [orders, setOrders] = useState<{ asks: Orders; bids: Orders; spread: number }>(INITIAL_ORDER_STATE);
 
@@ -66,14 +76,14 @@ export const FeedProvider = ({ children }) => {
 
   useEffect(() => {
     if (status === SocketState.connected) {
-      if (!paused) {
+      if (!isPaused) {
         subscribe(feed);
       }
     }
-    if (paused) {
+    if (isPaused) {
       unsubscribe(feed);
     }
-  }, [status, paused]);
+  }, [status, isPaused]);
 
   useEffect(() => {
     if (status === SocketState.connected && isSubscribed) {
@@ -118,7 +128,7 @@ export const FeedProvider = ({ children }) => {
         spread: o.asks[0][0] - o.bids[0][0],
       };
     });
-  }, 2000);
+  }, 500);
 
   const mapOrders = (orders: OrderMessages, isAsk: boolean): Orders => {
     let total = 0;
@@ -161,29 +171,23 @@ export const FeedProvider = ({ children }) => {
   }, []);
 
   return (
-    <FeedContext.Provider value={{ isLoading: isSubscribed, asks: orders.asks, bids: orders.bids, spread: orders.spread, maxTotals, paused, setPaused, toggleFeed, feed }}>
+    <FeedContext.Provider
+      value={{
+        isLoading: isSubscribed,
+        asks: orders.asks,
+        bids: orders.bids,
+        spread: orders.spread,
+        maxTotals,
+
+        isPaused,
+        start: () => setIsPaused(false),
+        pause: () => setIsPaused(true),
+
+        toggleFeed,
+        feed,
+      }}
+    >
       {children}
     </FeedContext.Provider>
   );
 };
-
-const throttle = (func, limit) => {
-  let inThrottle;
-  return function () {
-    const args = arguments;
-    const context = this;
-    if (!inThrottle) {
-      func.apply(context, args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
-};
-
-function usePrevious(value) {
-  const ref = useRef();
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-}

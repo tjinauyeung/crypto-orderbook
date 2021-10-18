@@ -1,16 +1,33 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "twin.macro";
 import { Button } from "../button/button";
 import { useFeed } from "../../providers/feed-provider";
+import { useWindowIsActive } from "../../hooks/useWindowIsActive";
 import { formatNumber } from "../../utils/formatters";
 import { OrderList } from "../order-list/order-list";
 import Logo from "../../assets/logo.png";
 
 export const OrderBook = () => {
-  const { paused, setPaused, spread, bids, maxTotals, asks, toggleFeed, feed } =
-    useFeed();
+  const {
+    start,
+    pause,
+    isPaused,
+    spread,
+    bids,
+    maxTotals,
+    asks,
+    toggleFeed,
+    feed,
+  } = useFeed();
 
-  console.log('rerender');
+  const isActive = useWindowIsActive();
+
+  useEffect(() => {
+    if (!isActive) {
+      pause();
+    }
+  }, [isActive]);
+
   return (
     <div tw="font-sans font-light divide-y divide-white min-h-screen flex flex-col bg-gray-900">
       <header
@@ -28,7 +45,10 @@ export const OrderBook = () => {
             <span>({formatNumber((spread / bids[0]?.[0]) * 100)}%)</span>
           </div>
           <div tw="flex-1 text-right">
-            { feed }
+            {feed}
+            <button onClick={isPaused ? start : pause}>
+              {isPaused ? "Start" : "Pause"}
+            </button>
           </div>
         </div>
       </header>
