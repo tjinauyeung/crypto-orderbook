@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "twin.macro";
 import Logo from "../../assets/logo.png";
 import { useWindowIsActive } from "../../hooks/useWindowIsActive";
@@ -12,17 +12,27 @@ import { useDebouncedResizeObserver } from "../../hooks/useDebouncedResizeObserv
 import { Overlay } from "../overlay/overlay";
 import { Container } from "../container/container";
 
-const HEADER_HEIGHT = 70;
-const FOOTER_HEIGHT = 80;
-const SPREAD_HEIGHT = 40;
+const HEIGHT_HEADER = 70;
+const HEIGHT_TABLE_HEAD = 45;
+const HEIGHT_SPREAD = 40;
+const HEIGHT_FOOTER = 80;
 const BREAKPOINT_SM = 768;
 
 export const OrderBook = () => {
-  const { data, feed, isLoading, isPaused, pause, resume, toggleFeed } =
-    useFeed();
+  const {
+    data,
+    feed,
+    isLoading,
+    isError,
+    isPaused,
+    pause,
+    resume,
+    toggleFeed,
+  } = useFeed();
 
   const isActive = useWindowIsActive();
   const { ref, width = 1, height = 1 } = useDebouncedResizeObserver(100);
+  const [listHeight, setListHeight] = useState(height);
 
   useEffect(() => {
     if (!isActive) {
@@ -30,36 +40,38 @@ export const OrderBook = () => {
     }
   }, [isActive]);
 
+  useEffect(() => {
+    setListHeight(
+      width > BREAKPOINT_SM
+        ? height - HEIGHT_HEADER - HEIGHT_FOOTER - HEIGHT_TABLE_HEAD
+        : (height - HEIGHT_HEADER - HEIGHT_FOOTER - HEIGHT_SPREAD) / 2
+    );
+  }, [width, height]);
+
   return (
     <Container ref={ref}>
       <header
-        tw="sticky top-0 left-0 right-0 bg-gray-900 z-20"
+        tw="sticky top-0 left-0 right-0 z-20 flex items-center p-4 text-sm"
         style={{
           borderBottom: "1px solid #777",
-          height: HEADER_HEIGHT,
+          height: HEIGHT_HEADER,
         }}
       >
-        <div tw="flex items-center p-4">
-          <h1 tw="flex-1 flex items-center m-0 font-sans font-light text-2xl">
-            <img src={Logo} tw="h-8 w-8 mr-4" />
-            Orderbook
-          </h1>
-          <Spread
-            tw="flex-1 flex items-center justify-center flex-1 font-mono text-sm hidden md:flex"
-            spread={data.spread}
-          />
-          <div tw="flex-1 text-right font-mono text-sm">{feed}</div>
-        </div>
+        <h1 tw="flex-1 flex items-center m-0 font-sans font-light text-2xl">
+          <img src={Logo} tw="h-8 w-8" />
+          <span tw="ml-4">Orderbook</span>
+        </h1>
+        <Spread
+          tw="flex-1 flex items-center justify-center hidden md:flex"
+          spread={data.spread}
+        />
+        <div tw="flex-1 text-right text-sm">{feed}</div>
       </header>
 
-      <main tw="flex flex-col-reverse md:flex-row overflow-scroll relative flex-1 text-sm">
+      <main tw="flex flex-col-reverse flex-1 md:flex-row relative">
         <OrderList
           tw="flex-1"
-          height={
-            width > BREAKPOINT_SM
-              ? height - HEADER_HEIGHT - FOOTER_HEIGHT
-              : (height - HEADER_HEIGHT - FOOTER_HEIGHT - SPREAD_HEIGHT) / 2
-          }
+          height={listHeight}
           orders={data.bids}
           maxTotal={data.maxTotals.bid}
           orderType={OrderType.BUY}
@@ -71,17 +83,13 @@ export const OrderBook = () => {
           style={{
             borderTop: "1px solid #777",
             borderBottom: "1px solid #777",
-            height: SPREAD_HEIGHT,
+            height: HEIGHT_SPREAD,
           }}
           spread={data.spread}
         />
         <OrderList
           tw="flex-1"
-          height={
-            width > BREAKPOINT_SM
-              ? height - HEADER_HEIGHT - FOOTER_HEIGHT
-              : (height - HEADER_HEIGHT - FOOTER_HEIGHT - SPREAD_HEIGHT) / 2
-          }
+          height={listHeight}
           orders={data.asks}
           maxTotal={data.maxTotals.ask}
           orderType={OrderType.SELL}
@@ -89,7 +97,7 @@ export const OrderBook = () => {
         />
       </main>
 
-      <Footer style={{ height: FOOTER_HEIGHT, borderTop: "1px solid #777" }}>
+      <Footer style={{ height: HEIGHT_FOOTER, borderTop: "1px solid #777" }}>
         <Button onClick={isPaused ? resume : pause}>
           {isPaused ? "Resume feed" : "Pause feed"}
         </Button>
@@ -97,6 +105,13 @@ export const OrderBook = () => {
       </Footer>
 
       {isLoading && !isPaused && <Overlay>Loading...</Overlay>}
+
+      {isError && (
+        <Overlay>
+          <p>Failed to stream feed.</p>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </Overlay>
+      )}
 
       {isPaused && (
         <Overlay>

@@ -42,9 +42,9 @@ export const OrderList = ({
   );
 
   return (
-    <section tw="text-right font-mono" {...props}>
+    <section tw="text-right font-mono text-sm" {...props}>
       <header
-        tw="grid grid-cols-3 sticky top-0 bg-gray-900 z-10 justify-center hidden md:grid uppercase"
+        tw="grid grid-cols-3 sticky top-0 z-10 justify-center hidden md:grid uppercase"
         style={{ borderBottom: "1px solid #777", direction }}
       >
         <div tw="p-3">Total</div>

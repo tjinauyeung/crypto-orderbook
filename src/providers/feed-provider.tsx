@@ -1,6 +1,5 @@
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useState,
@@ -15,6 +14,7 @@ type Feed = {
   data: FeedData;
   feed: string;
   isLoading: boolean;
+  isError: boolean;
   isPaused: boolean;
   pause: () => void;
   resume: () => void;
@@ -43,6 +43,8 @@ const INITIAL_DATA = {
   },
 };
 
+const THROTTLE_TIME = 2000;
+
 export const FeedProvider = ({ children }) => {
   const { status, sendMessage } = useWebSocket({
     url: SOCKET_URL,
@@ -58,7 +60,6 @@ export const FeedProvider = ({ children }) => {
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   function handleMessage(message) {
-    console.log(message);
     if (message.event === "subscribed") {
       return setIsSubscribed(true);
     }
@@ -76,16 +77,14 @@ export const FeedProvider = ({ children }) => {
 
   const updateFeed = throttle((message: OrderSnapshot) => {
     setData((o) => mapper.mapOrderUpdates(o, message));
-  }, 2000);
+  }, THROTTLE_TIME);
 
   useEffect(() => {
-    if (status === SocketState.connected) {
-      if (!isPaused) {
-        subscribe(feed);
-      }
-    }
     if (isPaused) {
-      unsubscribe(feed);
+      return unsubscribe(feed);
+    }
+    if (status === SocketState.connected) {
+      subscribe(feed);
     }
   }, [status, isPaused]);
 
@@ -100,27 +99,21 @@ export const FeedProvider = ({ children }) => {
     setFeed((feed) => (feed === FEED.BTCUSD ? FEED.ETHUSD : FEED.BTCUSD));
   };
 
-  const subscribe = useCallback(
-    (productId) => {
-      sendMessage({
-        event: "subscribe",
-        feed: "book_ui_1",
-        product_ids: [productId],
-      });
-    },
-    [sendMessage]
-  );
+  const subscribe = (feed: string) => {
+    sendMessage({
+      event: "subscribe",
+      feed: "book_ui_1",
+      product_ids: [feed],
+    });
+  };
 
-  const unsubscribe = useCallback(
-    (productId) => {
-      sendMessage({
-        event: "unsubscribe",
-        feed: "book_ui_1",
-        product_ids: [productId],
-      });
-    },
-    [sendMessage]
-  );
+  const unsubscribe = (feed: string) => {
+    sendMessage({
+      event: "unsubscribe",
+      feed: "book_ui_1",
+      product_ids: [feed],
+    });
+  };
 
   return (
     <FeedContext.Provider
@@ -128,6 +121,7 @@ export const FeedProvider = ({ children }) => {
         data,
         feed,
         isLoading: !isSubscribed,
+        isError: status === SocketState.error,
         isPaused,
         pause: () => setIsPaused(true),
         resume: () => setIsPaused(false),

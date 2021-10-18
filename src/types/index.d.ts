@@ -20,3 +20,8 @@ declare module 'react' {
     css?: CSSInterpolation
   }
 }
+
+declare module "*.png" {
+  const value: any;
+  export = value;
+}

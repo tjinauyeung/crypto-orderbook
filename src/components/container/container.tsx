@@ -7,7 +7,7 @@ type ContainerProps = {
 
 export const Container = forwardRef<HTMLDivElement, ContainerProps>(({ children }, ref) => (
   <div
-    tw="font-sans font-light divide-y divide-white h-screen flex flex-col bg-gray-900"
+    tw="font-mono h-screen flex flex-col bg-gray-900"
     ref={ref}
   >
     {children}
