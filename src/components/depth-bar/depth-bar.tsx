@@ -1,16 +1,18 @@
 import React from "react";
 import "twin.macro";
+import { OrderType } from "../../types";
 
 const COLORS = {
   RED: `rgba(255, 0, 0, 0.2)`,
   GREEN: `rgba(0, 255, 0, 0.2)`,
 };
 
-type DepthBar = {
+type Props = {
   depth: number;
+  orderType: OrderType;
 };
 
-export const DepthBar = ({ depth, orderType, ...props }) => (
+export const DepthBar = ({ depth, orderType, ...props }: Props) => (
   <div
     style={{
       backgroundImage: `linear-gradient(to ${getDir(orderType)}, ${getColor(

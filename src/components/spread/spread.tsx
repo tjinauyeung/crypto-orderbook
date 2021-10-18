@@ -5,7 +5,7 @@ import { Spread as ISpread } from "../../types";
 
 type Props = {
   spread: ISpread;
-  style?: any;
+  style?: unknown;
 };
 
 export const Spread = ({ spread, ...props }: Props) => (

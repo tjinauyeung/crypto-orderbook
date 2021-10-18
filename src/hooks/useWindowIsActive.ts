@@ -6,7 +6,7 @@ const getWindowIsActive = () => {
 };
 
 export const useWindowIsActive = (): boolean => {
-  let [isActive, setIsActive] = useState(getWindowIsActive());
+  const [isActive, setIsActive] = useState(getWindowIsActive());
 
   function handleVisibility() {
     setIsActive(getWindowIsActive());
