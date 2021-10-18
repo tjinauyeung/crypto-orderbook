@@ -7,48 +7,41 @@ import React, {
 } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { usePrevious } from "../hooks/usePrevious";
-import { MaxTotals, Order, OrderData, SocketState, Spread } from "../types";
-import { throttle } from "../utils/throttle";
-import * as mapper from "../services/order-mapper";
+import { FeedData, OrderSnapshot, SocketState } from "../types";
+import { throttle } from "../lib/throttle";
+import * as mapper from "../lib/order-mapper";
 
 type Feed = {
-  asks: Order[];
-  bids: Order[];
-  spread: Spread;
-  maxTotals: {
-    ask: number;
-    bid: number;
-  };
-
+  data: FeedData;
+  feed: string;
+  isLoading: boolean;
   isPaused: boolean;
   pause: () => void;
   start: () => void;
-
-  feed: string;
   toggleFeed: () => void;
-
-  isLoading: boolean;
 };
 
 const FeedContext = createContext({} as Feed);
 
-export const useFeed = () => useContext(FeedContext);
-
-const INITIAL_ORDER_STATE = {
-  asks: [],
-  bids: [],
-  spread: {
-    amount: 0,
-    percentage: 0,
-  },
-};
+const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
 
 const FEED = {
   BTCUSD: "PI_XBTUSD",
   ETHUSD: "PI_ETHUSD",
 };
 
-const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
+const INITIAL_DATA = {
+  asks: [],
+  bids: [],
+  spread: {
+    amount: 0,
+    percentage: 0,
+  },
+  maxTotals: {
+    ask: 0,
+    bid: 0,
+  },
+};
 
 export const FeedProvider = ({ children }) => {
   const { status, sendMessage } = useWebSocket({
@@ -56,30 +49,33 @@ export const FeedProvider = ({ children }) => {
     onMessage: handleMessage,
   });
 
+  const [data, setData] = useState<FeedData>(INITIAL_DATA);
+
   const [feed, setFeed] = useState(FEED.BTCUSD);
   const prevFeed = usePrevious(feed);
 
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  const [maxTotals, setMaxTotals] = useState<MaxTotals>({ ask: 0, bid: 0 });
-  const [orders, setOrders] = useState<OrderData>(INITIAL_ORDER_STATE);
-
   function handleMessage(message) {
     if (message.event === "subscribed") {
       return setIsSubscribed(true);
     }
     if (message.event === "unsubscribe") {
-      setOrders(INITIAL_ORDER_STATE);
+      setData(INITIAL_DATA);
       return setIsSubscribed(false);
     }
     if (message.feed === "book_ui_1_snapshot") {
-      return setOrders(mapper.mapOrderSnapshot(message));
+      return setData(mapper.mapOrderSnapshot(message));
     }
     if (message.feed === "book_ui_1") {
-      return throttle(setOrders(o => mapper.mapOrderUpdates(o, message)), 500);
+      return updateFeed(message);
     }
   }
+
+  const updateFeed = throttle((message: OrderSnapshot) => {
+    setData((o) => mapper.mapOrderUpdates(o, message));
+  }, 2000);
 
   useEffect(() => {
     if (status === SocketState.connected) {
@@ -94,9 +90,7 @@ export const FeedProvider = ({ children }) => {
 
   useEffect(() => {
     if (status === SocketState.connected && isSubscribed) {
-      // unsubscribe from previous feed
       unsubscribe(prevFeed);
-      // resubscribe with new feed
       subscribe(feed);
     }
   }, [feed, prevFeed]);
@@ -127,33 +121,21 @@ export const FeedProvider = ({ children }) => {
     [sendMessage]
   );
 
-  useEffect(() => {
-    if (orders.bids[orders.bids.length] && orders.asks[orders.asks.length]) {
-      setMaxTotals({
-        bid: orders.bids[orders.bids.length][2],
-        ask: orders.asks[orders.asks.length][2],
-      });
-    }
-  }, [orders]);
-
   return (
     <FeedContext.Provider
       value={{
-        isLoading: isSubscribed,
-        asks: orders.asks,
-        bids: orders.bids,
-        spread: orders.spread,
-        maxTotals,
-
-        isPaused,
-        start: () => setIsPaused(false),
-        pause: () => setIsPaused(true),
-
-        toggleFeed,
+        data,
         feed,
+        isLoading: !isSubscribed,
+        isPaused,
+        pause: () => setIsPaused(true),
+        start: () => setIsPaused(false),
+        toggleFeed,
       }}
     >
       {children}
     </FeedContext.Provider>
   );
 };
+
+export const useFeed = () => useContext(FeedContext);

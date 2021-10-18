@@ -3,22 +3,15 @@ import "twin.macro";
 import { Button } from "../button/button";
 import { useFeed } from "../../providers/feed-provider";
 import { useWindowIsActive } from "../../hooks/useWindowIsActive";
-import { formatNumber } from "../../utils/formatters";
 import { OrderList } from "../order-list/order-list";
+import { Spread } from "../spread/spread";
+import { Footer } from "../footer/footer";
 import Logo from "../../assets/logo.png";
+import { OrderType } from "../../types";
 
 export const OrderBook = () => {
-  const {
-    start,
-    pause,
-    isPaused,
-    spread,
-    bids,
-    maxTotals,
-    asks,
-    toggleFeed,
-    feed,
-  } = useFeed();
+  const { data, feed, isLoading, isPaused, pause, start, toggleFeed } =
+    useFeed();
 
   const isActive = useWindowIsActive();
 
@@ -27,6 +20,10 @@ export const OrderBook = () => {
       pause();
     }
   }, [isActive]);
+
+  if (isLoading) {
+    return <h2>Loading...</h2>;
+  }
 
   return (
     <div tw="font-sans font-light divide-y divide-white min-h-screen flex flex-col bg-gray-900">
@@ -39,50 +36,47 @@ export const OrderBook = () => {
             <img src={Logo} tw="h-8 w-8 mr-4" />
             Orderbook
           </h1>
-          <div tw="flex-1 flex items-center justify-center flex-1 font-mono text-sm hidden md:flex">
-            <span tw="mr-2">Spread</span>
-            <span tw="mr-2">{formatNumber(spread.amount)}</span>
-            <span>({formatNumber(spread.percentage)}%)</span>
-          </div>
+          <Spread
+            tw="flex-1 flex items-center justify-center flex-1 font-mono text-sm hidden md:flex"
+            spread={data.spread}
+          />
           <div tw="flex-1 text-right">
-            {feed}
             <button onClick={isPaused ? start : pause}>
               {isPaused ? "Start" : "Pause"}
             </button>
           </div>
         </div>
       </header>
-      <div tw="flex flex-col-reverse md:flex-row overflow-scroll relative flex-1 text-sm">
+
+      <main tw="flex flex-col-reverse md:flex-row overflow-scroll relative flex-1 text-sm">
         <OrderList
           tw="flex-1"
-          orders={bids}
-          maxTotal={maxTotals.bid}
-          orderType="buy"
+          height={800}
+          orders={data.bids}
+          maxTotal={data.maxTotals.bid}
+          orderType={OrderType.BUY}
         />
-        <div
+        <Spread
           tw="flex items-center justify-center font-mono flex md:hidden p-2"
           style={{
             borderTop: "1px solid #777",
             borderBottom: "1px solid #777",
           }}
-        >
-          <span tw="mr-2">Spread</span>
-          <span tw="mr-2">{formatNumber(spread.amount)}</span>
-          <span>({formatNumber(spread.percentage)}%</span>
-        </div>
+          spread={data.spread}
+        />
         <OrderList
           tw="flex-1"
-          orders={asks}
-          maxTotal={maxTotals.ask}
-          orderType="sell"
+          height={800}
+          orders={data.asks}
+          maxTotal={data.maxTotals.ask}
+          orderType={OrderType.SELL}
         />
-      </div>
-      <footer
-        tw="sticky bottom-0 bg-gray-900 flex p-4 items-center justify-center"
-        style={{ borderTop: "1px solid #777" }}
-      >
+      </main>
+
+      <Footer>
         <Button onClick={toggleFeed}>Toggle feed</Button>
-      </footer>
+        <span tw="float-right">{feed}</span>
+      </Footer>
     </div>
   );
 };

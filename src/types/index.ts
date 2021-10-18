@@ -5,6 +5,11 @@ export enum SocketState {
   error,
 }
 
+export enum OrderType {
+  BUY = 'buy',
+  SELL = 'sell'
+}
+
 export type Price = number;
 export type Size = number;
 export type Total = number;
@@ -16,13 +21,17 @@ export type OrderSnapshot = {
 
 export type OrderMessage = [Price, Size];
 
-export interface OrderData {
+export interface FeedData {
   bids: Order[];
   asks: Order[];
   spread: {
     amount: number;
     percentage: number;
   };
+  maxTotals: {
+    bid: number;
+    ask: number;
+  }
 }
 
 export type Order = [Price, Size, Total?];

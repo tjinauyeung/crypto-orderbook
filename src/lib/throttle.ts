@@ -1,6 +1,6 @@
-export const throttle = (func, limit) => {
+export const throttle = <T>(func, limit) => {
   let inThrottle;
-  return function () {
+  return function (T) {
     const args = arguments;
     const context = this;
     if (!inThrottle) {
