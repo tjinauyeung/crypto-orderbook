@@ -1,10 +1,10 @@
-import React, { createContext, Dispatch, MutableRefObject, SetStateAction, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, Dispatch, SetStateAction, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useWebSocket } from "../hooks/useWebSocket";
 import { MaxTotals, OrderMessages, Orders, SocketState } from "../types";
 
 type Feed = {
   asks: Orders;
   bids: Orders;
-  ws: MutableRefObject<WebSocket>;
   status: SocketState;
   spread: number;
   maxTotals: {
@@ -15,52 +15,72 @@ type Feed = {
   setPaused: Dispatch<SetStateAction<boolean>>;
   toggleFeed: () => void;
   feed: string;
+  isLoading: boolean;
 };
 
 const FeedContext = createContext({} as Feed);
 
 export const useFeed = () => useContext(FeedContext);
 
-export const FeedProvider = ({ children }) => {
-  const ws = useRef<WebSocket>(null);
+const INITIAL_ORDER_STATE = {
+  asks: [],
+  bids: [],
+  spread: 0,
+}
 
-  const [status, setStatus] = useState<SocketState>(SocketState.connecting);
+export const FeedProvider = ({ children }) => {
+  const { status, sendMessage } = useWebSocket({
+    url: "wss://www.cryptofacilities.com/ws/v1",
+    onMessage: handleMessage,
+  });
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [paused, setPaused] = useState<boolean>(false);
   const [feed, setFeed] = useState("PI_XBTUSD");
   const prevFeed = usePrevious(feed);
-
   const [maxTotals, setMaxTotals] = useState<MaxTotals>({ ask: 0, bid: 0 });
+  const [orders, setOrders] = useState<{ asks: Orders; bids: Orders; spread: number }>(INITIAL_ORDER_STATE);
 
-  const [orders, setOrders] = useState<{ asks: Orders; bids: Orders; spread: number }>({ asks: [], bids: [], spread: 0 });
-
-  useEffect(() => {
-    ws.current = new WebSocket("wss://www.cryptofacilities.com/ws/v1");
-    ws.current.onopen = () => {
-      console.log("connected");
-      setStatus(SocketState.connected);
-    };
-    ws.current.onclose = () => {
-      console.log("closed");
-      setStatus(SocketState.closed);
-    };
-    return () => ws.current.close();
-  }, []);
+  function handleMessage(message) {
+    if (message.event === "subscribed") {
+      setIsSubscribed(true);
+      return;
+    }
+    if (message.event === "unsubscribe") {
+      setOrders(INITIAL_ORDER_STATE);
+      setIsSubscribed(false);
+      return;
+    }
+    if (message.feed === "book_ui_1_snapshot") {
+      setOrders({
+        asks: mapOrders(message.asks, true),
+        bids: mapOrders(message.bids, false),
+        spread: message.bids[0][0] - message.asks[0][0],
+      });
+      return;
+    }
+    if (message.feed === "book_ui_1") {
+      updateOrders(message);
+      return;
+    }
+  }
 
   useEffect(() => {
     if (status === SocketState.connected) {
       if (!paused) {
-        subscribe(feed, ws.current);
+        subscribe(feed);
       }
     }
     if (paused) {
-      unsubscribe(feed, ws.current);
+      unsubscribe(feed);
     }
   }, [status, paused]);
 
   useEffect(() => {
-    if (status === SocketState.subscribed) {
-      unsubscribe(prevFeed, ws.current);
-      subscribe(feed, ws.current);
+    if (status === SocketState.connected && isSubscribed) {
+      // unsubscribe from previous feed
+      unsubscribe(prevFeed);
+      // resubscribe with new feed
+      subscribe(feed);
     }
   }, [feed, prevFeed]);
 
@@ -69,63 +89,26 @@ export const FeedProvider = ({ children }) => {
   };
 
   const subscribe = useCallback(
-    (productId, ws: WebSocket) => {
-      ws.send(
-        JSON.stringify({
-          event: "subscribe",
-          feed: "book_ui_1",
-          product_ids: [productId],
-        })
-      );
+    (productId) => {
+      sendMessage({
+        event: "subscribe",
+        feed: "book_ui_1",
+        product_ids: [productId],
+      });
     },
-    [ws]
+    [sendMessage]
   );
 
   const unsubscribe = useCallback(
-    (productId, ws: WebSocket) => {
-      ws.send(
-        JSON.stringify({
-          event: "unsubscribe",
-          feed: "book_ui_1",
-          product_ids: [productId],
-        })
-      );
+    (productId) => {
+      sendMessage({
+        event: "unsubscribe",
+        feed: "book_ui_1",
+        product_ids: [productId],
+      });
     },
-    [ws]
+    [sendMessage]
   );
-
-  useEffect(() => {
-    if (!ws.current) return;
-    ws.current.onmessage = handleMessage;
-  }, []);
-
-  const handleMessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.event === "subscribed") {
-      setStatus(SocketState.subscribed);
-      return;
-    }
-    if (msg.event === "unsubscribe") {
-      setOrders({
-        asks: [],
-        bids: [],
-        spread: 0,
-      });
-      return;
-    }
-    if (msg.feed === "book_ui_1_snapshot") {
-      setOrders({
-        asks: mapOrders(msg.asks, true),
-        bids: mapOrders(msg.bids, false),
-        spread: msg.bids[0][0] - msg.asks[0][0],
-      });
-      return;
-    }
-    if (msg.feed === "book_ui_1") {
-      updateOrders(msg);
-      return;
-    }
-  };
 
   const updateOrders = throttle((msg: any) => {
     setOrders((o) => {
@@ -135,7 +118,7 @@ export const FeedProvider = ({ children }) => {
         spread: o.asks[0][0] - o.bids[0][0],
       };
     });
-  }, 500);
+  }, 2000);
 
   const mapOrders = (orders: OrderMessages, isAsk: boolean): Orders => {
     let total = 0;
@@ -177,7 +160,11 @@ export const FeedProvider = ({ children }) => {
     );
   }, []);
 
-  return <FeedContext.Provider value={{ ws, status, asks: orders.asks, bids: orders.bids, spread: orders.spread, maxTotals, paused, setPaused, toggleFeed, feed }}>{children}</FeedContext.Provider>;
+  return (
+    <FeedContext.Provider value={{ isLoading: isSubscribed, asks: orders.asks, bids: orders.bids, spread: orders.spread, maxTotals, paused, setPaused, toggleFeed, feed }}>
+      {children}
+    </FeedContext.Provider>
+  );
 };
 
 const throttle = (func, limit) => {

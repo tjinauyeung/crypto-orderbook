@@ -1,8 +1,8 @@
 export enum SocketState {
-  connecting = 1,
-  connected = 2,
-  subscribed = 3,
-  closed = 4,
+  connecting,
+  connected,
+  closed,
+  error,
 }
 
 export type Price = number;
