@@ -9,7 +9,7 @@ type OrderListProps = {
   maxTotal: number;
   orders: Order[];
   orderType: OrderType;
-  direction: 'ltr' | 'rtl';
+  direction: "ltr" | "rtl";
   reverse?: boolean;
 };
 
@@ -22,18 +22,17 @@ export const OrderList = ({
   reverse,
   ...props
 }: OrderListProps) => {
-
   const Row = useCallback(
     ({ index, style }) => {
       const [price, size, total] = orders[index];
       return (
         <OrderListItem
           key={price}
+          style={style}
           price={price}
           size={size}
-          depth={Math.ceil((total / maxTotal) * 100)}
-          style={style}
           total={total}
+          depth={Math.ceil((total / maxTotal) * 100)}
           orderType={orderType}
           direction={direction}
         />
@@ -43,25 +42,20 @@ export const OrderList = ({
   );
 
   return (
-    <section
-      tw="grid grid-cols-3 flex-row-reverse text-right font-mono auto-rows-max"
-      style={{ direction }}
-      {...props}
-    >
+    <section tw="text-right font-mono" {...props}>
       <header
-        tw="grid grid-cols-3 col-span-3 sticky top-0 bg-gray-900 z-10 justify-center hidden md:grid"
-        style={{ borderBottom: "1px solid #777" }}
+        tw="grid grid-cols-3 sticky top-0 bg-gray-900 z-10 justify-center hidden md:grid uppercase"
+        style={{ borderBottom: "1px solid #777", direction }}
       >
-        <div tw="uppercase p-2">Total</div>
-        <div tw="uppercase p-2">Size</div>
-        <div tw="uppercase p-2">Price</div>
+        <div tw="p-3">Total</div>
+        <div tw="p-3">Size</div>
+        <div tw="p-3">Price</div>
       </header>
 
       <List
         height={height}
         itemCount={orders.length}
-        itemSize={35}
-        tw="col-span-3"
+        itemSize={32}
         style={{ direction }}
         {...props}
       >

@@ -44,8 +44,8 @@ function calcSpread(maxBid: number, minAsk: number): Spread {
   const percentage = (amount / minAsk) * 100;
   return {
     amount,
-    percentage
-  }
+    percentage,
+  };
 }
 
 function processOrders(messages: OrderMessage[]): {
@@ -67,10 +67,10 @@ function processOrders(messages: OrderMessage[]): {
 
 function processUpdates(
   orders: OrderMessage[],
-  orderUpdates: OrderMessage[],
+  orderUpdates: OrderMessage[] = [],
   sortAsc: boolean
 ): { orders: Order[]; maxTotal: number } {
-  let copy = JSON.parse(JSON.stringify(orders));
+  let copy = [...orders];
 
   for (const [price, size] of orderUpdates) {
     const idx = copy.findIndex((el) => el[0] == price);

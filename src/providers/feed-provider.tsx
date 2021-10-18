@@ -17,7 +17,7 @@ type Feed = {
   isLoading: boolean;
   isPaused: boolean;
   pause: () => void;
-  start: () => void;
+  resume: () => void;
   toggleFeed: () => void;
 };
 
@@ -58,10 +58,11 @@ export const FeedProvider = ({ children }) => {
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   function handleMessage(message) {
+    console.log(message);
     if (message.event === "subscribed") {
       return setIsSubscribed(true);
     }
-    if (message.event === "unsubscribe") {
+    if (message.event === "unsubscribed") {
       setData(INITIAL_DATA);
       return setIsSubscribed(false);
     }
@@ -129,7 +130,7 @@ export const FeedProvider = ({ children }) => {
         isLoading: !isSubscribed,
         isPaused,
         pause: () => setIsPaused(true),
-        start: () => setIsPaused(false),
+        resume: () => setIsPaused(false),
         toggleFeed,
       }}
     >
