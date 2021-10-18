@@ -1,12 +1,12 @@
-import { Order, FeedData, OrderMessage, OrderSnapshot, Spread } from "../types";
+import { Order, OrderFeedData, OrderMessage, Spread } from "../types";
 
-export function mapOrderSnapshot(orders: OrderSnapshot): FeedData {
-  const asks = processOrders(orders.asks);
-  const bids = processOrders(orders.bids);
+export function mapOrderFeed(message: OrderMessage): OrderFeedData {
+  const asks = processOrders(message.asks);
+  const bids = processOrders(message.bids);
   return {
     asks: asks.orders,
     bids: bids.orders,
-    spread: calcSpread(orders.bids[0][0], orders.asks[0][0]),
+    spread: getSpread({ asks: message.asks, bids: message.bids }),
     maxTotals: {
       ask: asks.maxTotal,
       bid: bids.maxTotal,
@@ -14,29 +14,44 @@ export function mapOrderSnapshot(orders: OrderSnapshot): FeedData {
   };
 }
 
-export function mapOrderUpdates(
-  orders: FeedData,
-  orderUpdates: OrderSnapshot
-): FeedData {
-  const asks = processUpdates(
-    orders.asks as OrderMessage[],
-    orderUpdates.asks,
-    true
-  );
-  const bids = processUpdates(
-    orders.bids as OrderMessage[],
-    orderUpdates.bids,
-    false
-  );
+export function mapOrderFeedUpdates(
+  orders: OrderFeedData,
+  message: OrderMessage
+): OrderFeedData {
+  const asks = processUpdates(orders.asks, message.asks, true);
+  const bids = processUpdates(orders.bids, message.bids, false);
   return {
-    asks: orderUpdates.asks.length > 0 ? asks.orders : orders.asks,
-    bids: orderUpdates.bids.length > 0 ? bids.orders : orders.bids,
-    spread: calcSpread(orders.bids[0][0], orders.asks[0][0]),
+    asks: message.asks.length > 0 ? asks.orders : orders.asks,
+    bids: message.bids.length > 0 ? bids.orders : orders.bids,
+    spread: getSpread({ asks: orders.asks, bids: orders.bids }),
     maxTotals: {
       ask: asks.maxTotal,
       bid: bids.maxTotal,
     },
   };
+}
+
+function getSpread({ asks, bids }: { asks: Order[]; bids: Order[] }): Spread {
+  let maxBid, minAsk;
+
+  if (bids.length) {
+    const [price] = bids[0];
+    maxBid = price;
+  }
+
+  if (asks.length) {
+    const [price] = asks[0];
+    minAsk = price;
+  }
+
+  if (!maxBid || !minAsk) {
+    return {
+      amount: 0,
+      percentage: 0,
+    };
+  }
+
+  return calcSpread(maxBid, minAsk);
 }
 
 function calcSpread(maxBid: number, minAsk: number): Spread {
@@ -48,10 +63,12 @@ function calcSpread(maxBid: number, minAsk: number): Spread {
   };
 }
 
-function processOrders(messages: OrderMessage[]): {
+type ProcessedOrder = {
   orders: Order[];
   maxTotal: number;
-} {
+};
+
+function processOrders(messages: Order[]): ProcessedOrder {
   let total = 0;
   const orders = [];
 
@@ -66,10 +83,10 @@ function processOrders(messages: OrderMessage[]): {
 }
 
 function processUpdates(
-  orders: OrderMessage[],
-  orderUpdates: OrderMessage[] = [],
+  orders: Order[],
+  orderUpdates: Order[] = [],
   sortAsc: boolean
-): { orders: Order[]; maxTotal: number } {
+): ProcessedOrder {
   let copy = [...orders];
 
   for (const [price, size] of orderUpdates) {
@@ -91,5 +108,5 @@ function processUpdates(
   return processOrders(copy.sort(sortAsc ? sortAscFn : sortDescFn));
 }
 
-const sortAscFn = (a: OrderMessage, b: OrderMessage) => (a[0] > b[0] ? 1 : -1);
-const sortDescFn = (a: OrderMessage, b: OrderMessage) => (a[0] < b[0] ? 1 : -1);
+const sortAscFn = (a: Order, b: Order) => (a[0] > b[0] ? 1 : -1);
+const sortDescFn = (a: Order, b: Order) => (a[0] < b[0] ? 1 : -1);

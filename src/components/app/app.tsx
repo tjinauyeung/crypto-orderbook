@@ -1,11 +1,11 @@
 import React from "react";
 import "twin.macro";
 import "./app.css";
-import { FeedProvider } from "../../providers/feed-provider";
+import { OrderFeedProvider } from "../../providers/order-feed-provider";
 import { OrderBook } from "../order-book/order-book";
 
 export const App = () => (
-  <FeedProvider>
+  <OrderFeedProvider>
     <OrderBook />
-  </FeedProvider>
+  </OrderFeedProvider>
 );

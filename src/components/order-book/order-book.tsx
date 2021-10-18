@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from "react";
 import "twin.macro";
-import Logo from "../../assets/logo.png";
 import { useWindowIsActive } from "../../hooks/useWindowIsActive";
-import { useFeed } from "../../providers/feed-provider";
+import { ORDER_FEED, useOrderFeed } from "../../providers/order-feed-provider";
 import { OrderType } from "../../types";
 import { Button } from "../button/button";
 import { Footer } from "../footer/footer";
 import { OrderList } from "../order-list/order-list";
 import { Spread } from "../spread/spread";
 import { useDebouncedResizeObserver } from "../../hooks/useDebouncedResizeObserver";
-import { Overlay } from "../overlay/overlay";
+import { OverlayMessage } from "../overlay-message/overlay-message";
 import { Container } from "../container/container";
 
 const HEIGHT_HEADER = 70;
@@ -17,6 +16,11 @@ const HEIGHT_TABLE_HEAD = 45;
 const HEIGHT_SPREAD = 40;
 const HEIGHT_FOOTER = 80;
 const BREAKPOINT_SM = 768;
+
+const FEED_LABEL = {
+  [ORDER_FEED.BTCUSD]: 'BTC / USD',
+  [ORDER_FEED.ETHUSD]: 'ETH / USD',
+}
 
 export const OrderBook = () => {
   const {
@@ -28,7 +32,7 @@ export const OrderBook = () => {
     pause,
     resume,
     toggleFeed,
-  } = useFeed();
+  } = useOrderFeed();
 
   const isActive = useWindowIsActive();
   const { ref, width = 1, height = 1 } = useDebouncedResizeObserver(100);
@@ -53,19 +57,16 @@ export const OrderBook = () => {
       <header
         tw="sticky top-0 left-0 right-0 z-20 flex items-center p-4 text-sm"
         style={{
-          borderBottom: "1px solid #777",
+          borderBottom: "1px solid #555",
           height: HEIGHT_HEADER,
         }}
       >
-        <h1 tw="flex-1 flex items-center m-0 font-sans font-light text-2xl">
-          <img src={Logo} tw="h-8 w-8" />
-          <span tw="ml-4">Orderbook</span>
-        </h1>
+        <h1 tw="flex-1 font-sans font-light text-lg">Orderbook</h1>
         <Spread
           tw="flex-1 flex items-center justify-center hidden md:flex"
           spread={data.spread}
         />
-        <div tw="flex-1 text-right text-sm">{feed}</div>
+        <div tw="flex-1 text-right font-sans font-light text-base">{FEED_LABEL[feed]}</div>
       </header>
 
       <main tw="flex flex-col-reverse flex-1 md:flex-row relative">
@@ -76,13 +77,12 @@ export const OrderBook = () => {
           maxTotal={data.maxTotals.bid}
           orderType={OrderType.BUY}
           direction={width > BREAKPOINT_SM ? "ltr" : "rtl"}
-          reverse={width <= BREAKPOINT_SM}
         />
         <Spread
           tw="flex items-center justify-center font-mono flex md:hidden p-2"
           style={{
-            borderTop: "1px solid #777",
-            borderBottom: "1px solid #777",
+            borderTop: "1px solid #555",
+            borderBottom: "1px solid #555",
             height: HEIGHT_SPREAD,
           }}
           spread={data.spread}
@@ -90,34 +90,36 @@ export const OrderBook = () => {
         <OrderList
           tw="flex-1"
           height={listHeight}
-          orders={data.asks}
+          orders={width > BREAKPOINT_SM ? data.asks : [...data.asks].reverse()}
           maxTotal={data.maxTotals.ask}
           orderType={OrderType.SELL}
           direction="rtl"
+          reverse={width <= BREAKPOINT_SM}
+          isMobile={width <= BREAKPOINT_SM}
         />
       </main>
 
-      <Footer style={{ height: HEIGHT_FOOTER, borderTop: "1px solid #777" }}>
+      <Footer style={{ height: HEIGHT_FOOTER, borderTop: "1px solid #555" }}>
         <Button onClick={isPaused ? resume : pause}>
           {isPaused ? "Resume feed" : "Pause feed"}
         </Button>
         <Button onClick={toggleFeed}>Toggle feed</Button>
       </Footer>
 
-      {isLoading && !isPaused && <Overlay>Loading...</Overlay>}
+      {isLoading && !isPaused && <OverlayMessage>Loading...</OverlayMessage>}
 
       {isError && (
-        <Overlay>
+        <OverlayMessage>
           <p>Failed to stream feed.</p>
           <Button onClick={() => window.location.reload()}>Reload</Button>
-        </Overlay>
+        </OverlayMessage>
       )}
 
       {isPaused && (
-        <Overlay>
+        <OverlayMessage>
           <p>Paused feed. Click to resume.</p>
           <Button onClick={resume}>Resume</Button>
-        </Overlay>
+        </OverlayMessage>
       )}
     </Container>
   );

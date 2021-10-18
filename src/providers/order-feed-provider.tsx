@@ -6,12 +6,12 @@ import React, {
 } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { usePrevious } from "../hooks/usePrevious";
-import { FeedData, OrderSnapshot, SocketState } from "../types";
+import { OrderFeedData, OrderMessage, SocketState } from "../types";
 import { throttle } from "../lib/throttle";
 import * as mapper from "../lib/order-mapper";
 
-type Feed = {
-  data: FeedData;
+type OrderFeed = {
+  data: OrderFeedData;
   feed: string;
   isLoading: boolean;
   isError: boolean;
@@ -21,16 +21,17 @@ type Feed = {
   toggleFeed: () => void;
 };
 
-const FeedContext = createContext({} as Feed);
+const OrderFeedContext = createContext({} as OrderFeed);
 
+const THROTTLE_TIME = 1000;
 const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
 
-const FEED = {
+export const ORDER_FEED = {
   BTCUSD: "PI_XBTUSD",
   ETHUSD: "PI_ETHUSD",
 };
 
-const INITIAL_DATA = {
+const INITIAL_ORDER_FEED_DATA = {
   asks: [],
   bids: [],
   spread: {
@@ -43,17 +44,14 @@ const INITIAL_DATA = {
   },
 };
 
-const THROTTLE_TIME = 2000;
-
-export const FeedProvider = ({ children }) => {
+export const OrderFeedProvider = ({ children }) => {
   const { status, sendMessage } = useWebSocket({
     url: SOCKET_URL,
     onMessage: handleMessage,
   });
 
-  const [data, setData] = useState<FeedData>(INITIAL_DATA);
-
-  const [feed, setFeed] = useState(FEED.BTCUSD);
+  const [data, setData] = useState<OrderFeedData>(INITIAL_ORDER_FEED_DATA);
+  const [feed, setFeed] = useState(ORDER_FEED.BTCUSD);
   const prevFeed = usePrevious(feed);
 
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -64,19 +62,25 @@ export const FeedProvider = ({ children }) => {
       return setIsSubscribed(true);
     }
     if (message.event === "unsubscribed") {
-      setData(INITIAL_DATA);
+      resetFeed();
       return setIsSubscribed(false);
     }
     if (message.feed === "book_ui_1_snapshot") {
-      return setData(mapper.mapOrderSnapshot(message));
+      return startFeed(message);
     }
     if (message.feed === "book_ui_1") {
       return updateFeed(message);
     }
   }
 
-  const updateFeed = throttle((message: OrderSnapshot) => {
-    setData((o) => mapper.mapOrderUpdates(o, message));
+  const resetFeed = () => setData(INITIAL_ORDER_FEED_DATA);
+
+  const startFeed = (message: OrderMessage) => {
+    setData(mapper.mapOrderFeed(message))
+  }
+
+  const updateFeed = throttle((message: OrderMessage) => {
+    setData((o) => mapper.mapOrderFeedUpdates(o, message));
   }, THROTTLE_TIME);
 
   useEffect(() => {
@@ -96,7 +100,7 @@ export const FeedProvider = ({ children }) => {
   }, [feed, prevFeed]);
 
   const toggleFeed = () => {
-    setFeed((feed) => (feed === FEED.BTCUSD ? FEED.ETHUSD : FEED.BTCUSD));
+    setFeed((feed) => (feed === ORDER_FEED.BTCUSD ? ORDER_FEED.ETHUSD : ORDER_FEED.BTCUSD));
   };
 
   const subscribe = (feed: string) => {
@@ -116,7 +120,7 @@ export const FeedProvider = ({ children }) => {
   };
 
   return (
-    <FeedContext.Provider
+    <OrderFeedContext.Provider
       value={{
         data,
         feed,
@@ -129,8 +133,8 @@ export const FeedProvider = ({ children }) => {
       }}
     >
       {children}
-    </FeedContext.Provider>
+    </OrderFeedContext.Provider>
   );
 };
 
-export const useFeed = () => useContext(FeedContext);
+export const useOrderFeed = () => useContext(OrderFeedContext);

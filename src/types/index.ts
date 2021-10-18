@@ -14,14 +14,24 @@ export type Price = number;
 export type Size = number;
 export type Total = number;
 
-export type OrderSnapshot = {
-  asks: OrderMessage[];
-  bids: OrderMessage[];
+export type OrderSnapshotMessage = {
+  numLevels: number;
+  asks: Order[];
+  bids: Order[];
+  feed: string;
+  product_id: string;
 };
 
-export type OrderMessage = [Price, Size];
+export type OrderUpdateMessage = {
+  asks: Order[];
+  bids: Order[];
+  feed: string;
+  product_id: string;
+};
 
-export interface FeedData {
+export type OrderMessage = OrderSnapshotMessage | OrderUpdateMessage;
+
+export interface OrderFeedData {
   bids: Order[];
   asks: Order[];
   spread: Spread;
