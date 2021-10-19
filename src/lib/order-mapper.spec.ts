@@ -1,74 +1,170 @@
-import { OrderMessage } from "../types";
-import { mapOrderFeed } from "./order-mapper";
+import { mapOrderFeed, mapOrderFeedUpdates } from "./order-mapper";
+import { createOrderMessage, createOrderFeedData } from "../test/mocks";
 
-const createMessage = (): OrderMessage => {
-  return {
-    numLevels: 25,
-    feed: "book_ui_1_snapshot",
-    bids: [
-      [61907.0, 4115.0],
-      [61904.5, 8638.0],
-      [61900.0, 4346.0],
-      [61897.0, 4533.0],
-      [61896.0, 14810.0],
-      [61895.5, 23999.0],
-      [61894.5, 2800.0],
-      [61889.0, 22142.0],
-      [61888.5, 7134.0],
-      [61886.5, 25069.0],
-      [61883.5, 1000.0],
-      [61881.5, 10000.0],
-      [61880.5, 5000.0],
-      [61876.0, 7305.0],
-      [61875.0, 25000.0],
-      [61866.5, 25000.0],
-      [61862.5, 15000.0],
-      [61861.0, 76866.0],
-      [61853.5, 4076.0],
-      [61852.5, 2011.0],
-      [61852.0, 5248.0],
-      [61849.0, 12371.0],
-      [61848.5, 87676.0],
-      [61848.0, 7500.0],
-      [61839.5, 399999.0],
-    ],
-    asks: [
-      [61913.5, 604.0],
-      [61920.5, 1000.0],
-      [61924.5, 5528.0],
-      [61933.5, 3000.0],
-      [61934.0, 7582.0],
-      [61934.5, 500.0],
-      [61935.5, 21907.0],
-      [61936.0, 7329.0],
-      [61937.0, 50000.0],
-      [61938.5, 2500.0],
-      [61941.0, 2826.0],
-      [61942.0, 12500.0],
-      [61944.5, 21585.0],
-      [61945.0, 7148.0],
-      [61946.5, 4497.0],
-      [61947.5, 61523.0],
-      [61948.0, 15000.0],
-      [61948.5, 6060.0],
-      [61950.0, 40000.0],
-      [61952.5, 25000.0],
-      [61956.0, 500.0],
-      [61956.5, 500.0],
-      [61960.5, 129903.0],
-      [61962.0, 15000.0],
-      [61963.5, 20000.0],
-    ],
-    product_id: "PI_XBTUSD",
-  };
+// The index in the Order tuple / triple
+// [ price, size, total ]
+const idx = {
+  price: 0,
+  size: 1,
+  total: 2,
 };
 
 describe("mapOrderFeed", () => {
+  describe("totals", () => {
+    it("returns empty array if no orders are passed", () => {
+      const result = mapOrderFeed(createOrderMessage({ bids: [], asks: [] }));
+      expect(result.bids).toHaveLength(0);
+      expect(result.asks).toHaveLength(0);
+    });
+
+    it("calculates the totals based the accumulated size of bids lower than the current bid", () => {
+      const result = mapOrderFeed(
+        createOrderMessage({
+          bids: [
+            [101, 10],
+            [102, 20],
+            [103, 30],
+            [104, 40],
+            [105, 50],
+          ],
+        })
+      );
+      expect(result.bids[0][idx.total]).toBe(10);
+      expect(result.bids[1][idx.total]).toBe(30);
+      expect(result.bids[2][idx.total]).toBe(60);
+      expect(result.bids[3][idx.total]).toBe(100);
+      expect(result.bids[4][idx.total]).toBe(150);
+    });
+
+    it("calculates the totals based the accumulated size of asks higher than the current ask", () => {
+      const result = mapOrderFeed(
+        createOrderMessage({
+          asks: [
+            [105, 10],
+            [104, 20],
+            [103, 30],
+            [102, 40],
+            [101, 50],
+          ],
+        })
+      );
+      expect(result.asks[0][idx.total]).toBe(10);
+      expect(result.asks[1][idx.total]).toBe(30);
+      expect(result.asks[2][idx.total]).toBe(60);
+      expect(result.asks[3][idx.total]).toBe(100);
+      expect(result.asks[4][idx.total]).toBe(150);
+    });
+  });
+
   describe("maxTotals", () => {
-    it("calculates the totals", () => {
-      const result = mapOrderFeed(createMessage());
-      expect(result.maxTotals.ask).toBe(461992);
-      expect(result.maxTotals.bid).toBe(801638);
+    it("returns zero if no orders are passed", () => {
+      const result = mapOrderFeed(createOrderMessage({ bids: [], asks: [] }));
+      expect(result.maxTotals.bid).toBe(0);
+      expect(result.maxTotals.ask).toBe(0);
+    });
+
+    it("returns the accumulative size of all ask orders", () => {
+      const result = mapOrderFeed(createOrderMessage());
+      expect(result.maxTotals.ask).toBe(17714);
+    });
+
+    it("returns the accumulative size of all bid orders", () => {
+      const result = mapOrderFeed(createOrderMessage());
+      expect(result.maxTotals.bid).toBe(36442);
+    });
+  });
+
+  describe("spread", () => {
+    it("returns the spread amount as the difference between highest bid and lowest ask", () => {
+      const result = mapOrderFeed(
+        createOrderMessage({
+          bids: [[61956, 10]],
+          asks: [[61966.5, 200]],
+        })
+      );
+      expect(result.spread.amount).toBe(10.5);
+    });
+
+    it("returns the spread percentage as the spread amount divided by the amount of ask shares", () => {
+      const result = mapOrderFeed(
+        createOrderMessage({
+          bids: [[100, 10]],
+          asks: [[80, 10]],
+        })
+      );
+      expect(result.spread.percentage).toBe(25);
+    });
+  });
+});
+
+describe("mapOrderFeedUpdates", () => {
+  describe("orders", () => {
+    it("updates the current orders based on the received delta and returns a new list", () => {
+      const old = createOrderFeedData();
+      const result = mapOrderFeedUpdates(
+        old,
+        createOrderMessage({
+          asks: [[61933.5, 3200]],
+        })
+      );
+
+      expect(result.asks).toHaveLength(old.asks.length); // length unchanged
+      expect(result.asks[0][idx.size]).toBe(old.asks[0][idx.size]);
+      expect(result.asks[1][idx.size]).toBe(old.asks[1][idx.size]);
+      expect(result.asks[2][idx.size]).toBe(old.asks[2][idx.size]);
+      expect(result.asks[3][idx.size]).not.toBe(old.asks[3][idx.size]); // updated
+      expect(result.asks[3][idx.size]).toBe(3200); // updated
+      expect(result.asks[4][idx.size]).toBe(old.asks[4][idx.size]);
+    });
+
+    it("removes an order when the received order update has size 0", () => {
+      const current = createOrderFeedData();
+      expect(current.asks).toEqual([
+        [61913.5, 4000, 4000],
+        [61920.5, 2000, 6000],
+        [61924.5, 1000, 7000],
+        [61933.5, 3000, 10000],
+        [61934.0, 5000, 15000],
+      ]);
+
+      const result = mapOrderFeedUpdates(
+        current,
+        createOrderMessage({
+          asks: [[61933.5, 0]],
+        })
+      );
+
+      expect(result.asks).toHaveLength(current.asks.length - 1);
+      expect(result.asks).toEqual([
+        [61913.5, 4000, 4000],
+        [61920.5, 2000, 6000],
+        [61924.5, 1000, 7000],
+        [61934.0, 5000, 12000],
+      ]);
+    });
+
+    it("sorts the ask orders from lowest price to highest price", () => {
+      const result = mapOrderFeedUpdates(
+        createOrderFeedData(),
+        createOrderMessage()
+      );
+      result.asks.forEach((ask, i) => {
+        if (i > 0) {
+          expect(ask[idx.price]).toBeGreaterThan(result.asks[i - 1][idx.price]);
+        }
+      })
+    });
+
+    it("sorts the bid orders from highest price to lowest price", () => {
+      const result = mapOrderFeedUpdates(
+        createOrderFeedData(),
+        createOrderMessage()
+      );
+      result.bids.forEach((bid, i) => {
+        if (i > 0) {
+          expect(bid[idx.price]).toBeLessThan(result.bids[i - 1][idx.price]);
+        }
+      })
     });
   });
 });

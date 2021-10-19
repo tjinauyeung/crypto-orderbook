@@ -1,22 +1,11 @@
 {
   "compilerOptions": {
     "jsxImportSource": "@emotion/react",
-    "esModuleInterop": true,
-    "rootDir": "./",
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "lib": ["esnext"],
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noEmit": true,
-    "noFallthroughCasesInSwitch": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "sourceMap": true,
+    "target": "es5",
+    "module": "commonjs",
     "strict": true,
-    "target": "esnext"
+    "esModuleInterop": true,
+    "rootDir": "./"
   },
   "files": ["./src/types/index.d.ts"],
   "include": ["./src/types"]

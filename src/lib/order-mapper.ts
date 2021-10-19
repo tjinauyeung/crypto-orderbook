@@ -55,7 +55,7 @@ function getSpread({ asks, bids }: { asks: Order[]; bids: Order[] }): Spread {
 }
 
 function calcSpread(maxBid: number, minAsk: number): Spread {
-  const amount = Math.abs(maxBid - minAsk);
+  const amount = Math.abs(minAsk - maxBid);
   const percentage = (amount / minAsk) * 100;
   return {
     amount,
