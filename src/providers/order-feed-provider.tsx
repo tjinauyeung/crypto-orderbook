@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { usePrevious } from "../hooks/usePrevious";
 import { OrderFeedData, OrderMessage, SocketState } from "../types";
@@ -23,7 +18,8 @@ type OrderFeed = {
 
 const OrderFeedContext = createContext({} as OrderFeed);
 
-const THROTTLE_TIME = 1000;
+export const THROTTLE_TIME = 400;
+
 const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
 
 export const ORDER_FEED = {
@@ -62,10 +58,10 @@ export const OrderFeedProvider = ({ children }) => {
       return setIsSubscribed(true);
     }
     if (message.event === "unsubscribed") {
-      resetFeed();
       return setIsSubscribed(false);
     }
     if (message.feed === "book_ui_1_snapshot") {
+      resetFeed();
       return startFeed(message);
     }
     if (message.feed === "book_ui_1") {
@@ -76,8 +72,8 @@ export const OrderFeedProvider = ({ children }) => {
   const resetFeed = () => setData(INITIAL_ORDER_FEED_DATA);
 
   const startFeed = (message: OrderMessage) => {
-    setData(mapper.mapOrderFeed(message))
-  }
+    setData(mapper.mapOrderFeed(message));
+  };
 
   const updateFeed = throttle((message: OrderMessage) => {
     setData((o) => mapper.mapOrderFeedUpdates(o, message));
@@ -100,7 +96,9 @@ export const OrderFeedProvider = ({ children }) => {
   }, [feed, prevFeed]);
 
   const toggleFeed = () => {
-    setFeed((feed) => (feed === ORDER_FEED.BTCUSD ? ORDER_FEED.ETHUSD : ORDER_FEED.BTCUSD));
+    setFeed((feed) =>
+      feed === ORDER_FEED.BTCUSD ? ORDER_FEED.ETHUSD : ORDER_FEED.BTCUSD
+    );
   };
 
   const subscribe = (feed: string) => {

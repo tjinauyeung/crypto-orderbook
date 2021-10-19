@@ -5,7 +5,7 @@ import { debounce } from "../lib/debounce";
 type ObservedSize = {
   width: number;
   height: number;
-}
+};
 
 export const useDebouncedResizeObserver = (wait: number) => {
   const [size, setSize] = useState<ObservedSize>({} as ObservedSize);

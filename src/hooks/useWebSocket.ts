@@ -3,15 +3,18 @@ import { SocketState } from "../types";
 
 type UseWebSocketProps = {
   url: string;
-  onMessage
-}
+  onMessage;
+};
 
 type UseWebSocketResult = {
-  sendMessage: (json: any) => void;
+  sendMessage: (json: unknown) => void;
   status: SocketState;
-}
+};
 
-export const useWebSocket = ({ url, onMessage }: UseWebSocketProps): UseWebSocketResult => {
+export const useWebSocket = ({
+  url,
+  onMessage,
+}: UseWebSocketProps): UseWebSocketResult => {
   const ws = useRef<WebSocket>(null);
   const [status, setStatus] = useState<SocketState>(SocketState.connecting);
 
@@ -24,17 +27,19 @@ export const useWebSocket = ({ url, onMessage }: UseWebSocketProps): UseWebSocke
     return () => ws.current.close();
   }, []);
 
-  const receiveMessage = (e) => {
+  const receiveMessage = (e: MessageEvent) => {
     let json = {};
     try {
       json = JSON.parse(e.data);
     } catch (e) {
-      console.log(`Failed to parse message. Reason ${e.message}. Message: ${e}.`);
+      console.log(
+        `Failed to parse message. Reason ${e.message}. Message: ${e}.`
+      );
     }
     onMessage(json);
-  }
+  };
 
-  const sendMessage = (json: Record<string, unknown>) => {
+  const sendMessage = (json: unknown) => {
     ws.current.send(JSON.stringify(json));
   };
 
