@@ -15,13 +15,13 @@ npm run test
 ### Screenshots
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/tjinauyeung/crypto-orderbook/master/screenshots/screenshot-desktop-1.png" width="720px">
+    <img src="https://raw.githubusercontent.com/tjinauyeung/crypto-orderbook/master/screenshots/screenshot-desktop.png" width="720px">
 </p>
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/tjinauyeung/crypto-orderbook/master/screenshots/screenshot-desktop-2.png" width="720px">
+    <img src="https://raw.githubusercontent.com/tjinauyeung/crypto-orderbook/master/screenshots/screenshot-desktop-paused.png" width="720px">
 </p>
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/tjinauyeung/crypto-orderbook/master/screenshots/screenshot-mobile.png" width="480px">
+    <img src="https://raw.githubusercontent.com/tjinauyeung/crypto-orderbook/master/screenshots/screenshot-phone.png" width="480px">
 </p>
