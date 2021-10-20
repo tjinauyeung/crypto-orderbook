@@ -88,16 +88,15 @@ export const OrderFeedProvider = ({ children }) => {
   }, THROTTLE_TIME);
 
   useEffect(() => {
-    if (status !== SocketState.connected) return;
     if (isPaused) {
       unsubscribe(feed);
     } else {
       subscribe(feed);
     }
-  }, [status, isPaused]);
+  }, [isPaused]);
 
   useEffect(() => {
-    if (status === SocketState.connected && isSubscribed) {
+    if (status === SocketState.connected) {
       unsubscribe(prevFeed);
       subscribe(feed);
     }

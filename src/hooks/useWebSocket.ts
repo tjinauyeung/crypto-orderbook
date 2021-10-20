@@ -17,6 +17,7 @@ export const useWebSocket = ({
 }: UseWebSocketProps): UseWebSocketResult => {
   const ws = useRef<WebSocket>(null);
   const [status, setStatus] = useState<SocketState>(SocketState.connecting);
+  const [queue, setQueue] = useState([]);
 
   useEffect(() => {
     ws.current = new WebSocket(url);
@@ -39,8 +40,19 @@ export const useWebSocket = ({
     onMessage(json);
   };
 
-  const sendMessage = (json: unknown) => {
-    ws.current.send(JSON.stringify(json));
+  useEffect(() => {
+    if (status === SocketState.connected && queue.length) {
+      queue.forEach(msg => sendMessage(msg));
+      setQueue([]);
+    }
+  }, [status, queue]);
+
+  const sendMessage = (message: unknown) => {
+    if (status === SocketState.connected) {
+      ws.current.send(JSON.stringify(message));
+    } else {
+      setQueue((messages) => [...messages, message]);
+    }
   };
 
   return {
