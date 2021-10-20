@@ -3,7 +3,13 @@ import { usePrevious } from "../hooks/usePrevious";
 import { useWebSocket } from "../hooks/useWebSocket";
 import * as mapper from "../lib/order-mapper";
 import { throttle } from "../lib/throttle";
-import { isOrderSnapshotMessage, isOrderUpdateMessage, isSubscribedMessage, isUnsubscribedMessage, makeMessage } from "../lib/message";
+import {
+  isOrderSnapshotMessage,
+  isOrderUpdateMessage,
+  isSubscribedMessage,
+  isUnsubscribedMessage,
+  makeMessage,
+} from "../lib/message";
 import { Message, OrderFeedData, OrderMessage, SocketState } from "../types";
 
 type OrderFeed = {
@@ -82,10 +88,10 @@ export const OrderFeedProvider = ({ children }) => {
   }, THROTTLE_TIME);
 
   useEffect(() => {
+    if (status !== SocketState.connected) return;
     if (isPaused) {
-      return unsubscribe(feed);
-    }
-    if (status === SocketState.connected) {
+      unsubscribe(feed);
+    } else {
       subscribe(feed);
     }
   }, [status, isPaused]);
@@ -103,8 +109,10 @@ export const OrderFeedProvider = ({ children }) => {
     );
   };
 
-  const subscribe = (feed: string) => sendMessage(makeMessage('subscribe', feed));
-  const unsubscribe = (feed: string) => sendMessage(makeMessage('unsubscribe', feed));
+  const subscribe = (feed: string) =>
+    sendMessage(makeMessage("subscribe", feed));
+  const unsubscribe = (feed: string) =>
+    sendMessage(makeMessage("unsubscribe", feed));
 
   return (
     <OrderFeedContext.Provider
