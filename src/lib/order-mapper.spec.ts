@@ -85,14 +85,14 @@ describe("mapOrderFeed", () => {
       expect(result.spread.amount).toBe(10.5);
     });
 
-    it("returns the spread percentage as the spread amount divided by the amount of ask shares", () => {
+    it("returns the spread percentage as the spread amount divided by the ask price", () => {
       const result = mapOrderFeed(
         makeOrderMessage({
-          bids: [[100, 10]],
-          asks: [[80, 10]],
+          bids: [[798, 10]],
+          asks: [[800, 10]],
         })
       );
-      expect(result.spread.percentage).toBe(25);
+      expect(result.spread.percentage).toBe(0.25);
     });
   });
 });
