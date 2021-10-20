@@ -1,6 +1,6 @@
 import { OrderMessage, OrderFeedData } from "../types";
 
-export const createOrderMessage = (
+export const makeOrderMessage = (
   overrides: Partial<OrderMessage> = {}
 ): OrderMessage => ({
   numLevels: 25,
@@ -23,7 +23,7 @@ export const createOrderMessage = (
   ...overrides,
 });
 
-export const createOrderFeedData = (
+export const makeOrderFeedData = (
   overrides: Partial<OrderFeedData> = {}
 ): OrderFeedData => ({
   spread: {

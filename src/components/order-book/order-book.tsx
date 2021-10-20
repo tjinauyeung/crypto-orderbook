@@ -34,6 +34,7 @@ export const OrderBook = () => {
     feed,
     isLoading,
     isError,
+    isClosed,
     isPaused,
     pause,
     resume,
@@ -133,6 +134,13 @@ export const OrderBook = () => {
       </Footer>
 
       {isLoading && !isPaused && <OverlayMessage>Loading...</OverlayMessage>}
+
+      {isClosed && (
+        <OverlayMessage>
+          <p>Closed feed.</p>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </OverlayMessage>
+      )}
 
       {isError && (
         <OverlayMessage>

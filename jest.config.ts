@@ -1,14 +1,16 @@
 module.exports = {
-  preset: "ts-jest",
-  globals: {
-    "ts-jest": {
-      tsconfig: "tsconfig.json",
-    },
-  },
-  moduleFileExtensions: ["js", "jsx", "ts", "tsx"],
+  roots: ["<rootDir>/src"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}", "!src/**/*.d.ts"],
+  testMatch: [
+    "<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}",
+  ],
+  testEnvironment: "jsdom",
   transform: {
-    "^.+\\.(ts|tsx)$": "./node_modules/ts-jest/preprocessor.js",
+    "^.+\\.(js|jsx|mjs|cjs|ts|tsx)$": "<rootDir>/node_modules/babel-jest",
   },
-  testMatch: ["**/*.spec.(tsx|ts)"],
-  testEnvironment: "node",
+  transformIgnorePatterns: [
+    "[/\\\\]node_modules[/\\\\].+\\.(js|jsx|mjs|cjs|ts|tsx)$",
+  ],
+  resetMocks: true,
 };

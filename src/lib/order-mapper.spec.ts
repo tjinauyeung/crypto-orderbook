@@ -1,5 +1,5 @@
 import { mapOrderFeed, mapOrderFeedUpdates } from "./order-mapper";
-import { createOrderMessage, createOrderFeedData } from "../test/mocks";
+import { makeOrderMessage, makeOrderFeedData } from "../mocks/order";
 
 // The index in the Order tuple / triple
 // [ price, size, total ]
@@ -12,14 +12,14 @@ const idx = {
 describe("mapOrderFeed", () => {
   describe("totals", () => {
     it("returns empty array if no orders are passed", () => {
-      const result = mapOrderFeed(createOrderMessage({ bids: [], asks: [] }));
+      const result = mapOrderFeed(makeOrderMessage({ bids: [], asks: [] }));
       expect(result.bids).toHaveLength(0);
       expect(result.asks).toHaveLength(0);
     });
 
     it("calculates the totals based the accumulated size of bids lower than the current bid", () => {
       const result = mapOrderFeed(
-        createOrderMessage({
+        makeOrderMessage({
           bids: [
             [101, 10],
             [102, 20],
@@ -38,7 +38,7 @@ describe("mapOrderFeed", () => {
 
     it("calculates the totals based the accumulated size of asks higher than the current ask", () => {
       const result = mapOrderFeed(
-        createOrderMessage({
+        makeOrderMessage({
           asks: [
             [105, 10],
             [104, 20],
@@ -58,18 +58,18 @@ describe("mapOrderFeed", () => {
 
   describe("maxTotals", () => {
     it("returns zero if no orders are passed", () => {
-      const result = mapOrderFeed(createOrderMessage({ bids: [], asks: [] }));
+      const result = mapOrderFeed(makeOrderMessage({ bids: [], asks: [] }));
       expect(result.maxTotals.bid).toBe(0);
       expect(result.maxTotals.ask).toBe(0);
     });
 
     it("returns the accumulative size of all ask orders", () => {
-      const result = mapOrderFeed(createOrderMessage());
+      const result = mapOrderFeed(makeOrderMessage());
       expect(result.maxTotals.ask).toBe(17714);
     });
 
     it("returns the accumulative size of all bid orders", () => {
-      const result = mapOrderFeed(createOrderMessage());
+      const result = mapOrderFeed(makeOrderMessage());
       expect(result.maxTotals.bid).toBe(36442);
     });
   });
@@ -77,7 +77,7 @@ describe("mapOrderFeed", () => {
   describe("spread", () => {
     it("returns the spread amount as the difference between highest bid and lowest ask", () => {
       const result = mapOrderFeed(
-        createOrderMessage({
+        makeOrderMessage({
           bids: [[61956, 10]],
           asks: [[61966.5, 200]],
         })
@@ -87,7 +87,7 @@ describe("mapOrderFeed", () => {
 
     it("returns the spread percentage as the spread amount divided by the amount of ask shares", () => {
       const result = mapOrderFeed(
-        createOrderMessage({
+        makeOrderMessage({
           bids: [[100, 10]],
           asks: [[80, 10]],
         })
@@ -100,10 +100,10 @@ describe("mapOrderFeed", () => {
 describe("mapOrderFeedUpdates", () => {
   describe("orders", () => {
     it("updates the current orders based on the received delta and returns a new list", () => {
-      const old = createOrderFeedData();
+      const old = makeOrderFeedData();
       const result = mapOrderFeedUpdates(
         old,
-        createOrderMessage({
+        makeOrderMessage({
           asks: [[61933.5, 3200]],
         })
       );
@@ -118,7 +118,7 @@ describe("mapOrderFeedUpdates", () => {
     });
 
     it("removes an order when the received order update has size 0", () => {
-      const current = createOrderFeedData();
+      const current = makeOrderFeedData();
       expect(current.asks).toEqual([
         [61913.5, 4000, 4000],
         [61920.5, 2000, 6000],
@@ -129,7 +129,7 @@ describe("mapOrderFeedUpdates", () => {
 
       const result = mapOrderFeedUpdates(
         current,
-        createOrderMessage({
+        makeOrderMessage({
           asks: [[61933.5, 0]],
         })
       );
@@ -145,8 +145,8 @@ describe("mapOrderFeedUpdates", () => {
 
     it("sorts the ask orders from lowest price to highest price", () => {
       const result = mapOrderFeedUpdates(
-        createOrderFeedData(),
-        createOrderMessage()
+        makeOrderFeedData(),
+        makeOrderMessage()
       );
       result.asks.forEach((ask, i) => {
         if (i > 0) {
@@ -157,8 +157,8 @@ describe("mapOrderFeedUpdates", () => {
 
     it("sorts the bid orders from highest price to lowest price", () => {
       const result = mapOrderFeedUpdates(
-        createOrderFeedData(),
-        createOrderMessage()
+        makeOrderFeedData(),
+        makeOrderMessage()
       );
       result.bids.forEach((bid, i) => {
         if (i > 0) {

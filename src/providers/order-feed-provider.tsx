@@ -1,15 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useWebSocket } from "../hooks/useWebSocket";
 import { usePrevious } from "../hooks/usePrevious";
-import { OrderFeedData, OrderMessage, SocketState } from "../types";
-import { throttle } from "../lib/throttle";
+import { useWebSocket } from "../hooks/useWebSocket";
 import * as mapper from "../lib/order-mapper";
+import { throttle } from "../lib/throttle";
+import { isOrderSnapshotMessage, isOrderUpdateMessage, isSubscribedMessage, isUnsubscribedMessage, makeMessage } from "../lib/message";
+import { Message, OrderFeedData, OrderMessage, SocketState } from "../types";
 
 type OrderFeed = {
   data: OrderFeedData;
   feed: string;
   isLoading: boolean;
   isError: boolean;
+  isClosed: boolean;
   isPaused: boolean;
   pause: () => void;
   resume: () => void;
@@ -20,7 +22,7 @@ const OrderFeedContext = createContext({} as OrderFeed);
 
 export const THROTTLE_TIME = 400;
 
-const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
+export const SOCKET_URL = "wss://www.cryptofacilities.com/ws/v1";
 
 export const ORDER_FEED = {
   BTCUSD: "PI_XBTUSD",
@@ -53,18 +55,18 @@ export const OrderFeedProvider = ({ children }) => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
-  function handleMessage(message) {
-    if (message.event === "subscribed") {
+  function handleMessage(message: Message) {
+    if (isSubscribedMessage(message)) {
       return setIsSubscribed(true);
     }
-    if (message.event === "unsubscribed") {
+    if (isUnsubscribedMessage(message)) {
       return setIsSubscribed(false);
     }
-    if (message.feed === "book_ui_1_snapshot") {
+    if (isOrderSnapshotMessage(message)) {
       resetFeed();
       return startFeed(message);
     }
-    if (message.feed === "book_ui_1") {
+    if (isOrderUpdateMessage(message)) {
       return updateFeed(message);
     }
   }
@@ -101,21 +103,8 @@ export const OrderFeedProvider = ({ children }) => {
     );
   };
 
-  const subscribe = (feed: string) => {
-    sendMessage({
-      event: "subscribe",
-      feed: "book_ui_1",
-      product_ids: [feed],
-    });
-  };
-
-  const unsubscribe = (feed: string) => {
-    sendMessage({
-      event: "unsubscribe",
-      feed: "book_ui_1",
-      product_ids: [feed],
-    });
-  };
+  const subscribe = (feed: string) => sendMessage(makeMessage('subscribe', feed));
+  const unsubscribe = (feed: string) => sendMessage(makeMessage('unsubscribe', feed));
 
   return (
     <OrderFeedContext.Provider
@@ -124,6 +113,7 @@ export const OrderFeedProvider = ({ children }) => {
         feed,
         isLoading: !isSubscribed,
         isError: status === SocketState.error,
+        isClosed: status === SocketState.closed,
         isPaused,
         pause: () => setIsPaused(true),
         resume: () => setIsPaused(false),
